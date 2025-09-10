@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mental Health Support App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        .hidden { display: none; }
+        .pointer { cursor: pointer; }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <h1 class="mb-4 text-center">Mental Health Support</h1>
+
+    <div id="auth-section">
+        <div id="register-form">
+            <h3>Register</h3>
+            <input type="email" id="reg-email" class="form-control mb-2" placeholder="Email">
+            <input type="password" id="reg-password" class="form-control mb-2" placeholder="Password">
+            <button class="btn btn-primary mb-3" onclick="register()">Register</button>
+        </div>
+        <div id="login-form">
+            <h3>Login</h3>
+            <input type="email" id="login-email" class="form-control mb-2" placeholder="Email">
+            <input type="password" id="login-password" class="form-control mb-2" placeholder="Password">
+            <button class="btn btn-success mb-3" onclick="login()">Login</button>
+        </div>
+    </div>
+
+    <div id="app-section" class="hidden">
+        <div class="mb-4">
+            <button class="btn btn-secondary float-end" onclick="logout()">Logout</button>
+            <h3>Welcome, <span id="user-email"></span></h3>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">Log Your Mood</div>
+            <div class="card-body">
+                <input type="number" id="mood-score" class="form-control mb-2" placeholder="Mood Score (1-10)">
+                <textarea id="symptoms" class="form-control mb-2" placeholder="Symptoms"></textarea>
+                <button class="btn btn-primary" onclick="logMood()">Log Mood</button>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">Early Detection</div>
+            <div class="card-body">
+                <p>Do you often feel anxious or depressed?</p>
+                <select id="question1" class="form-select mb-2">
+                    <option value="0">No</option>
+                    <option value="1">Sometimes</option>
+                    <option value="2">Often</option>
+                </select>
+                <p>Do you struggle to sleep?</p>
+                <select id="question2" class="form-select mb-2">
+                    <option value="0">No</option>
+                    <option value="1">Sometimes</option>
+                    <option value="2">Often</option>
+                </select>
+                <button class="btn btn-warning" onclick="earlyDetection()">Check</button>
+                <div id="detection-result" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">Resources</div>
+            <div class="card-body" id="resources-list">
+                <!-- Loaded via JS -->
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">Admin Dashboard</div>
+            <div class="card-body">
+                <button class="btn btn-info mb-2" onclick="showAnalytics()">Show Mood Analytics</button>
+                <div id="analytics"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Helper for hashing (simulation only, do not use in production)
+    function simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = (hash << 5) - hash + str.charCodeAt(i);
+            hash |= 0;
+        }
+        return hash.toString();
+    }
+
+    // User registration
+    function register() {
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value.trim();
+        if (!email || !password) {
+            alert("Enter valid details.");
+            return;
+        }
+        let users = JSON.parse(localStorage.getItem('users') || '{}');
+        if (users[email]) {
+            alert("User already exists.");
+            return;
+        }
+        users[email] = simpleHash(password);
+        localStorage.setItem('users', JSON.stringify(users));
+        alert("Registered successfully.");
+    }
+
+    // User login
+    function login() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+        let users = JSON.parse(localStorage.getItem('users') || '{}');
+        if (!users[email] || users[email] !== simpleHash(password)) {
+            alert("Invalid credentials.");
+            return;
+        }
+        localStorage.setItem('currentUser', email);
+        showApp();
+    }
+
+    function logout() {
+        localStorage.removeItem('currentUser');
+        document.getElementById('app-section').classList.add('hidden');
+        document.getElementById('auth-section').classList.remove('hidden');
+    }
+
+    function showApp() {
+        const email = localStorage.getItem('currentUser');
+        document.getElementById('user-email').innerText = email;
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('app-section').classList.remove('hidden');
+        loadResources();
+    }
+
+    // Load resources
+    function loadResources() {
+        const resources = [
+            { title: "How to deal with anxiety", content: "Practice deep breathing and mindfulness daily." },
+            { title: "Sleep hygiene tips", content: "Maintain a consistent sleep schedule and avoid screens before bed." }
+        ];
+        const container = document.getElementById('resources-list');
+        container.innerHTML = '';
+        resources.forEach(r => {
+            container.innerHTML += `<div><h5>${r.title}</h5><p>${r.content}</p></div>`;
+        });
+    }
+
+    // Log mood
+    function logMood() {
+        const mood = parseInt(document.getElementById('mood-score').value);
+        const symptoms = document.getElementById('symptoms').value.trim();
+        if (!mood || mood < 1 || mood > 10) {
+            alert("Enter mood between 1 and 10.");
+            return;
+        }
+        let logs = JSON.parse(localStorage.getItem('mood_logs') || '[]');
+        logs.push({ mood_score: mood, symptoms: symptoms, timestamp: new Date().toISOString() });
+        localStorage.setItem('mood_logs', JSON.stringify(logs));
+        alert("Mood logged!");
+        document.getElementById('mood-score').value = '';
+        document.getElementById('symptoms').value = '';
+    }
+
+    // Early detection
+    function earlyDetection() {
+        const q1 = parseInt(document.getElementById('question1').value);
+        const q2 = parseInt(document.getElementById('question2').value);
+        const total = q1 + q2;
+        const result = document.getElementById('detection-result');
+        if (total >= 3) {
+            result.innerHTML = '<div class="alert alert-danger">High risk. Please seek professional help.</div>';
+        } else if (total === 2) {
+            result.innerHTML = '<div class="alert alert-warning">Moderate risk. Try relaxation techniques.</div>';
+        } else {
+            result.innerHTML = '<div class="alert alert-success">Low risk. Keep up the good habits!</div>';
+        }
+    }
+
+    // Show analytics
+    function showAnalytics() {
+        const logs = JSON.parse(localStorage.getItem('mood_logs') || '[]');
+        if (logs.length === 0) {
+            document.getElementById('analytics').innerHTML = "<p>No data available.</p>";
+            return;
+        }
+        let sum = 0;
+        let distribution = {};
+        logs.forEach(log => {
+            sum += log.mood_score;
+            distribution[log.mood_score] = (distribution[log.mood_score] || 0) + 1;
+        });
+        let avg = (sum / logs.length).toFixed(2);
+        let distHtml = "<ul>";
+        for (let score in distribution) {
+            distHtml += `<li>Score ${score}: ${distribution[score]} times</li>`;
+        }
+        distHtml += "</ul>";
+        document.getElementById('analytics').innerHTML = `
+            <p>Average Mood Score: ${avg}</p>
+            ${distHtml}
+        `;
+    }
+
+    // Auto-login if already authenticated
+    if (localStorage.getItem('currentUser')) {
+        showApp();
+    }
+</script>
+
+</body>
+</html>
